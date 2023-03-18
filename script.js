@@ -6,13 +6,17 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 class Workout {
   date = new Date();
   id = (Date.now() + ' ').slice(-10);
-
+  clicks = 0;
   constructor(coords, distance, duration) {
     // this.date =...
     // this.id=...
     this.coords = coords; // [lar,lng]
     this.distance = distance; // in km
     this.duration = duration; // in min
+  }
+
+  click() {
+    this.clicks++;
   }
 
   _setDescription() {
@@ -83,6 +87,7 @@ const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
 class App {
+  #mapZoomLevel = 15;
   #map;
   #mapEvent;
   #workouts = [];
@@ -92,6 +97,8 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this));
 
     inputType.addEventListener('change', this._toggleElevationField);
+
+    containerWorkouts.addEventListener('click', this._moveToPopUp.bind(this));
   }
 
   _getPosition() {
@@ -111,7 +118,7 @@ class App {
 
     const coords = [latitude, longitude];
 
-    this.#map = L.map('map').setView(coords, 15);
+    this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
@@ -128,6 +135,7 @@ class App {
     form.classList.remove('hidden');
     inputDistance.focus();
   }
+
   _hideForm() {
     // Empty inputs
     inputElevation.value =
@@ -199,7 +207,11 @@ class App {
 
     // Hide form + Clear input fields
     this._hideForm();
+
+    // Set local storage to all workouts
+    this._setLocalStorage();
   }
+
   _renderWorkoutMarker(workout) {
     L.marker(workout.coords)
       .addTo(this.#map)
@@ -267,6 +279,27 @@ class App {
         </li>
     `;
     form.insertAdjacentHTML('afterend', html);
+  }
+  _moveToPopUp(e) {
+    const workoutEl = e.target.closest('.workout');
+    console.log(workoutEl);
+
+    if (!workoutEl) return;
+
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    console.log(workout);
+
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+
+    // using the public interface
+    workout.click();
   }
 }
 
